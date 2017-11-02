@@ -1,6 +1,7 @@
 #pragma once
 #ifndef MY_GRAPHICS_CLASS_
 #define MY_GRAPHICS_CLASS_
+#include <vector>
 #include <cmath>
 
 class Geometry;
@@ -39,7 +40,7 @@ public:
 class IntersectResult {
 public:
 	Geometry *p_geometry;
-	double distance;
+	double distance = -1;
 	Vector3 position = Vector3();
 	Vector3 normal = Vector3();
 };
@@ -63,6 +64,7 @@ class Material {
 public:
 	Material() {}
 	virtual RgbColor sample_(Ray3 ray, IntersectResult result, Vector3 light_direction, RgbColor light_color = RgbColor());
+	virtual double get_reflectiveness_();
 	virtual ~Material() = 0 {}
 };
 
@@ -73,6 +75,7 @@ private:
 public:
 	Phong(RgbColor diffuse, RgbColor specular, double shiness, double reflectiveness = 0);
 	RgbColor sample_(Ray3 ray, IntersectResult result, Vector3 light_direction, RgbColor light_color = RgbColor());
+	double get_reflectiveness_();
 };
 
 class Checker : public Material {
@@ -81,6 +84,7 @@ private:
 public:
 	Checker(double scale, double refelctiveness = 0);
 	RgbColor sample_(Ray3 ray, IntersectResult result, Vector3 light_direction, RgbColor light_color = RgbColor());
+	double get_reflectiveness_();
 };
 
 class Depth : public Material {
@@ -94,7 +98,7 @@ public:
 class Geometry {
 public:
 	Geometry() {}
-	virtual IntersectResult intersect_();
+	virtual IntersectResult intersect_(Ray3 ray);
 	virtual Material *get_material_();
 	virtual ~Geometry() = 0 {}
 };
@@ -129,6 +133,15 @@ private:
 public:
 	PerspectiveCamera(Vector3 eye, Vector3 front, Vector3 up, double fov);
 	Ray3 generate_ray_(double x, double y);
+};
+
+class Scene {
+private:
+	std::vector<Geometry *> m_union;
+public:
+	IntersectResult intersect_(Ray3 ray);
+	Geometry *add_geometry_(Geometry *geometry);
+	void clear_scene_();
 };
 
 #endif

@@ -38,27 +38,89 @@ public:
 
 class IntersectResult {
 public:
-	Geometry *p_geometry = 0;
+	Geometry *p_geometry;
 	double distance;
 	Vector3 position = Vector3();
 	Vector3 normal = Vector3();
 };
 
+class RgbColor {
+private:
+	double m_r, m_g, m_b;
+public:
+	RgbColor(double r = 1, double g = 1, double b = 1);
+	RgbColor operator+(RgbColor com);
+	RgbColor operator*(RgbColor com);
+	RgbColor operator*(double com);
+	RgbColor &operator=(RgbColor com);
+	double get_r_();
+	double get_g_();
+	double get_b_();
+	int calculate_color_();
+};
+
+class Material {
+public:
+	Material() {}
+	virtual RgbColor sample_(Ray3 ray, IntersectResult result, Vector3 light_direction, RgbColor light_color = RgbColor());
+	virtual ~Material() = 0 {}
+};
+
+class Phong : public Material {
+private:
+	RgbColor m_diffuse, m_specular;
+	double m_shiness, m_reflectiveness;
+public:
+	Phong(RgbColor diffuse, RgbColor specular, double shiness, double reflectiveness = 0);
+	RgbColor sample_(Ray3 ray, IntersectResult result, Vector3 light_direction, RgbColor light_color = RgbColor());
+};
+
+class Checker : public Material {
+private:
+	double m_scale, m_reflectiveness;
+public:
+	Checker(double scale, double refelctiveness = 0);
+	RgbColor sample_(Ray3 ray, IntersectResult result, Vector3 light_direction, RgbColor light_color = RgbColor());
+};
+
+class Depth : public Material {
+private:
+	double m_max_depth;
+public:
+	Depth(double max_depth);
+	RgbColor sample_(Ray3 ray, IntersectResult result, Vector3 light_direction, RgbColor light_color = RgbColor());
+};
+
 class Geometry {
 public:
 	Geometry() {}
-	IntersectResult intersect_(Ray3) {};
-	virtual ~Geometry() = 0 {};
+	virtual IntersectResult intersect_();
+	virtual Material *get_material_();
+	virtual ~Geometry() = 0 {}
 };
 
-class Sphere : public Geometry{
+class Sphere : public Geometry {
 private:
 	Vector3 m_center;
 	double m_radius, m_sqr_radius;
+	Material *m_material;
 public:
-	Sphere(Vector3 vec, double r);
-	IntersectResult intersect_(Ray3);
+	Sphere(Vector3 vec, double r, Material *material);
+	Material *get_material_();
+	IntersectResult intersect_(Ray3 ray);
 };
+
+class Plane : public Geometry {
+private:
+	Vector3 m_normal, m_position;
+	double m_distance;
+	Material *m_p_material;
+public:
+	Plane(Vector3 normal, double distance, Material *material);
+	Material *get_material_();
+	IntersectResult intersect_(Ray3 ray);
+};
+
 
 class PerspectiveCamera {
 private:

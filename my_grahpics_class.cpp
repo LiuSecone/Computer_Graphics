@@ -1,3 +1,5 @@
+#include <cmath>
+//#include <iostream>
 #include "my_graphics_class.h"
 
 Vector3::Vector3(double x, double y, double z) {
@@ -89,10 +91,106 @@ Vector3 Ray3::get_direction_() {
 	return m_direction;
 }
 
-Sphere::Sphere(Vector3 vec, double r) {
+RgbColor::RgbColor(double r, double g, double b) {
+	m_r = r;
+	m_g = g;
+	m_b = b;
+	return;
+}
+RgbColor RgbColor::operator+(RgbColor com) {
+	double r = m_r + com.m_r;
+	double g = m_g + com.m_g;
+	double b = m_b + com.m_b;
+	return RgbColor(r, g, b);
+}
+RgbColor RgbColor::operator*(RgbColor com) {
+	return RgbColor(m_r * com.m_r, m_g * com.m_g, m_b * com.m_b);
+}
+RgbColor RgbColor::operator*(double com) {
+	return RgbColor(m_r * com, m_g * com, m_b * com);
+}
+RgbColor &RgbColor::operator=(RgbColor com) {
+	m_r = com.m_r;
+	m_g = com.m_g;
+	m_b = com.m_b;
+	return *this;
+}
+double RgbColor::get_r_() {
+	return m_r;
+}
+double RgbColor::get_g_() {
+	return m_g;
+}
+double RgbColor::get_b_() {
+	return m_b;
+}
+int RgbColor::calculate_color_() {
+	int color = int((m_r < 1 ? m_r : 1) * 255);
+	color <<= 8;
+	color += int((m_g < 1 ? m_g : 1) * 255);
+	color <<= 8;
+	color += int((m_b < 1 ? m_b : 1) * 255);
+	return color;
+}
+
+RgbColor Material::sample_(Ray3 ray, IntersectResult result, Vector3 light_direction, RgbColor light_colorB) {
+	return RgbColor();
+}
+
+Phong::Phong(RgbColor diffuse, RgbColor specular, double shiness, double reflectiveness) {
+	m_diffuse = diffuse;
+	m_specular = specular;
+	m_shiness = shiness;
+	m_reflectiveness = reflectiveness;
+}
+RgbColor Phong::sample_(Ray3 ray, IntersectResult result, Vector3 light_direction, RgbColor light_color) {
+	double n_dot_l = result.normal.dot_product_(light_direction);
+	Vector3 h = (light_direction - ray.get_direction_()).normalize_vec_();
+	double n_dot_h = result.normal.dot_product_(h);
+	RgbColor diffuse_term = m_diffuse * (n_dot_l > 0 ? n_dot_l : 0);
+	RgbColor specular_term = m_specular * pow((n_dot_h > 0 ? n_dot_h : 0), m_shiness);
+	return light_color * (diffuse_term + specular_term);
+}
+
+Checker::Checker(double scale, double refelctiveness) {
+	m_scale = scale;
+	m_reflectiveness = refelctiveness;
+	return;
+}
+RgbColor Checker::sample_(Ray3 ray, IntersectResult result, Vector3 light_direction, RgbColor light_color) {
+	int temp = int(result.position.get_vec_x_() * m_scale) + int(result.position.get_vec_y_() * m_scale) +int(result.position.get_vec_z_() * m_scale);
+	temp = abs(temp) % 2;
+	return RgbColor(temp, temp, temp);
+}
+
+Depth::Depth(double max_depth) {
+	m_max_depth = max_depth;
+	return;
+}
+
+RgbColor Depth::sample_(Ray3 ray, IntersectResult result, Vector3 light_direction, RgbColor light_color) {
+	double pixel_depth = result.distance / m_max_depth;
+	if (pixel_depth > 1) {
+		pixel_depth = 0;
+	}
+	else {
+		pixel_depth = 1 - pixel_depth;
+	}
+	return RgbColor(pixel_depth, pixel_depth, pixel_depth);
+}
+
+IntersectResult Geometry::intersect_() {
+	return IntersectResult();
+}
+Material *Geometry::get_material_() {
+	return nullptr;
+}
+
+Sphere::Sphere(Vector3 vec, double r, Material *material) {
 	m_center = vec;
 	m_radius = r;
 	m_sqr_radius = r * r;
+	m_material = material;
 	return;
 }
 IntersectResult Sphere::intersect_(Ray3 ray) {
@@ -109,6 +207,32 @@ IntersectResult Sphere::intersect_(Ray3 ray) {
 		}
 	}
 	return intersect_result;
+}
+Material *Sphere::get_material_() {
+	return m_material;
+}
+
+Plane::Plane(Vector3 normal, double distance, Material *material) {
+	m_normal = normal.normalize_vec_();
+	m_distance = distance;
+	m_p_material = material;
+	m_position = m_normal * distance;
+	return;
+}
+Material *Plane::get_material_() {
+	return m_p_material;
+}
+IntersectResult Plane::intersect_(Ray3 ray) {
+	double a = ray.get_direction_().dot_product_(m_normal);
+	IntersectResult result;
+	if (a < 0) {
+		double b = m_normal.dot_product_(ray.get_origin_() - m_position);
+		result.p_geometry = this;
+		result.distance = -b / a;
+		result.position = ray.get_point_(result.distance);
+		result.normal = m_normal;
+	}
+	return result;
 }
 
 PerspectiveCamera::PerspectiveCamera(Vector3 eye, Vector3 front, Vector3 up, double fov) {

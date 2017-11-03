@@ -107,7 +107,7 @@ class Sphere : public Geometry {
 private:
 	Vector3 m_center;
 	double m_radius, m_sqr_radius;
-	Material *m_material;
+	Material *m_p_material;
 public:
 	Sphere(Vector3 vec, double r, Material *material);
 	Material *get_material_();

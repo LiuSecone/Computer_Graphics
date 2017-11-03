@@ -167,8 +167,7 @@ Checker::Checker(double scale, double refelctiveness) {
 RgbColor Checker::sample_(Ray3 ray, IntersectResult result, Vector3 light_direction, RgbColor light_color) {
 	int temp = int(floor(result.position.get_vec_x_() * m_scale) + floor(result.position.get_vec_y_() * m_scale) + floor(result.position.get_vec_z_() * m_scale));
 	temp = abs(temp) % 2;
-	double n_dot_l = result.normal.dot_product_(light_direction);
-	return RgbColor(temp, temp, temp)  * (n_dot_l > 0 ? n_dot_l : 0);
+	return RgbColor(temp, temp, temp);
 }
 double Checker::get_reflectiveness_() {
 	return m_reflectiveness;
@@ -201,7 +200,7 @@ Sphere::Sphere(Vector3 vec, double r, Material *material) {
 	m_center = vec;
 	m_radius = r;
 	m_sqr_radius = r * r;
-	m_material = material;
+	m_p_material = material;
 	return;
 }
 IntersectResult Sphere::intersect_(Ray3 ray) {
@@ -220,7 +219,7 @@ IntersectResult Sphere::intersect_(Ray3 ray) {
 	return intersect_result;
 }
 Material *Sphere::get_material_() {
-	return m_material;
+	return m_p_material;
 }
 
 Plane::Plane(Vector3 normal, double distance, Material *material) {
@@ -236,19 +235,14 @@ Material *Plane::get_material_() {
 IntersectResult Plane::intersect_(Ray3 ray) {
 	double a = ray.get_direction_().dot_product_(m_normal);
 	IntersectResult result;
-	if ((a - 0) < pow(1, -8)) {
+	if (a < 0) {
 		double b = m_normal.dot_product_(m_position - ray.get_origin_());
 		result.p_geometry = this;
 		result.distance = b / a;
 		result.position = ray.get_point_(result.distance);
-		if (a < 0) {
-			result.normal = m_normal;
-		}
-		else {
-			result.normal = m_normal.get_negate_();
-		}
-		if (result.distance < 0) {
-			result.p_geometry = NULL;
+		result.normal = m_normal;
+		if (result.distance <= 1e-8) {
+			result = IntersectResult();
 		}
 	}
 	return result;
